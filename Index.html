@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image to PDF & Converter Pro</title>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- jsPDF for PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+        body { background-color: #0f172a; color: #f8fafc; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
+        header { background-color: #1e293b; border-bottom: 1px solid #334155; padding: 16px 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); width: 100%; }
+        .container { max-width: 1200px; margin: 0 auto; width: 100%; padding: 0 16px; }
+        
+        main { flex-grow: 1; max-width: 1200px; width: 100%; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 20px; }
+        
+        /* Dropzone */
+        #drop-zone { border: 2px dashed #475569; border-radius: 16px; padding: 24px 16px; text-align: center; background: rgba(30,41,59,0.5); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; transition: 0.2s; width: 100%; }
+        #drop-zone:hover { border-color: #6366f1; background: #1e293b; }
+
+        /* Action Panel */
+        .panel { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 16px; width: 100%; }
+        .panel-row { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; width: 100%; }
+        
+        .control-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 140px; }
+        label { font-size: 0.75rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+        
+        select { background: #0f172a; color: #f8fafc; border: 1px solid #334155; padding: 10px 12px; border-radius: 8px; outline: none; width: 100%; font-size: 0.875rem; }
+        
+        /* Buttons */
+        .btn { background: #6366f1; color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.875rem; transition: 0.2s; white-space: nowrap; }
+        .btn:hover { background: #4f46e5; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-danger { background: #e11d48; }
+        .btn-danger:hover { background: #be123c; }
+        .btn-secondary { background: #334155; color: white; }
+        .btn-secondary:hover { background: #475569; }
+
+        /* Grid */
+        .grid { display: grid; grid-template-columns: 1fr; gap: 16px; width: 100%; }
+        @media(min-width: 540px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+        @media(min-width: 768px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+        @media(min-width: 1024px) { .grid { grid-template-columns: repeat(4, 1fr); } }
+
+        /* Card */
+        .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 12px; width: 100%; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .card-img-box { position: relative; width: 100%; height: 150px; background: #0f172a; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .card-img-box img { max-height: 100%; max-width: 100%; object-fit: contain; }
+        .card-badge { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.7); color: white; font-size: 11px; padding: 2px 6px; border-radius: 4px; font-family: monospace; }
+        
+        .card-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; }
+        .icon-btn { width: 36px; height: 36px; background: #334155; color: white; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: 0.2s; }
+        .icon-btn:hover { background: #475569; }
+        .icon-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .icon-btn.edit { background: rgba(99,102,241,0.2); color: #818cf8; }
+        .icon-btn.edit:hover { background: #6366f1; color: white; }
+        .icon-btn.delete { background: rgba(225,29,72,0.2); color: #fb7185; }
+        .icon-btn.delete:hover { background: #e11d48; color: white; }
+
+        /* Modal */
+        #editor-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 50; display: none; align-items: center; justify-content: center; padding: 16px; overflow-y: auto; }
+        .modal-content { background: #1e293b; border: 1px solid #334155; border-radius: 16px; max-width: 600px; width: 100%; padding: 20px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); max-height: 90vh; overflow-y: auto; }
+        
+        .range-wrap { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+        input[type="range"] { width: 100%; accent-color: #6366f1; height: 6px; border-radius: 3px; background: #0f172a; outline: none; }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="container" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <h1 style="font-size: 1.25rem; font-weight: 700; color: #818cf8; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-file-pdf"></i> Image Converter & PDF Studio
+            </h1>
+            <button onclick="clearAll()" class="btn btn-danger" style="padding: 6px 12px; font-size: 0.8rem;">
+                <i class="fa-solid fa-trash"></i> Clear All
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main>
+        
+        <!-- Dropzone / Upload Area -->
+        <div id="drop-zone">
+            <div style="width: 50px; height: 50px; border-radius: 50%; background: rgba(99,102,241,0.1); color: #818cf8; display:flex; align-items:center; justify-content:center; font-size: 20px;">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+            </div>
+            <div>
+                <h3 style="font-size: 1rem; font-weight: 600;">Drag & Drop images here, or <span style="color: #818cf8; text-decoration: underline;">browse</span></h3>
+                <p style="font-size: 0.75rem; color: #94a3b8; margin-top: 4px;">Supports JPG, PNG, WEBP (Multiple files allowed)</p>
+            </div>
+            <input type="file" id="file-input" multiple accept="image/*" style="display:none;">
+        </div>
+
+        <!-- Global Action Panel / Export Options -->
+        <div class="panel">
+            <div class="panel-row">
+                <div class="control-group">
+                    <label>Export Format</label>
+                    <select id="export-format">
+                        <option value="pdf">PDF Document</option>
+                        <option value="png">PNG Image</option>
+                        <option value="jpg">JPG Image</option>
+                        <option value="webp">WebP Image</option>
+                    </select>
+                </div>
+
+                <!-- PDF Specific Settings -->
+                <div id="pdf-settings-group" class="panel-row" style="flex: 2; gap: 12px; margin: 0;">
+                    <div class="control-group">
+                        <label>PDF Page Size</label>
+                        <select id="pdf-size">
+                            <option value="a4">A4 Standard</option>
+                            <option value="letter">US Letter</option>
+                            <option value="legal">Legal</option>
+                            <option value="fit-image">Fit to Image Size</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label>Orientation</label>
+                        <select id="pdf-orientation">
+                            <option value="portrait">Portrait</option>
+                            <option value="landscape">Landscape</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="processAndDownload()" id="download-btn" class="btn" style="width: 100%; justify-content: center;" disabled>
+                <i class="fa-solid fa-download"></i> Convert & Download
+            </button>
+        </div>
+
+        <!-- Image Grid Section -->
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                <h2 style="font-size: 0.75rem; font-weight: 700; color: #94a3b8; letter-spacing: 0.05em;">UPLOADED IMAGES (<span id="image-count">0</span>)</h2>
+                <p style="font-size: 0.75rem; color: #64748b;">Use arrows to reorder pages</p>
+            </div>
+            
+            <div id="image-grid" class="grid"></div>
+        </div>
+    </main>
+
+    <!-- Editor Modal for Effects -->
+    <div id="editor-modal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 12px;">
+                <h3 style="font-size: 1rem; font-weight: 600; color: #818cf8;"><i class="fa-solid fa-wand-magic-sparkles"></i> Edit Image Effects</h3>
+                <button onclick="closeEditor()" class="icon-btn" style="width: 30px; height: 30px;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; md-direction: row; gap: 16px; align-items: center;">
+                <div style="width: 100%; display: flex; justify-content: center; background: #0f172a; padding: 12px; border-radius: 10px; border: 1px solid #334155; max-height: 200px; overflow: hidden;">
+                    <canvas id="editor-canvas" style="max-height: 175px; object-fit: contain;"></canvas>
+                </div>
+                
+                <div style="width: 100%; display: flex; flex-direction: column; gap: 12px;">
+                    <div class="range-wrap">
+                        <label>Brightness: <span id="val-brightness">100</span>%</label>
+                        <input type="range" id="range-brightness" min="0" max="200" value="100" oninput="applyEffects()">
+                    </div>
+                    <div class="range-wrap">
+                        <label>Contrast: <span id="val-contrast">100</span>%</label>
+                        <input type="range" id="range-contrast" min="0" max="200" value="100" oninput="applyEffects()">
+                    </div>
+                    <div class="range-wrap">
+                        <label>Grayscale: <span id="val-grayscale">0</span>%</label>
+                        <input type="range" id="range-grayscale" min="0" max="100" value="0" oninput="applyEffects()">
+                    </div>
+                    <div style="display: flex; gap: 8px; padding-top: 4px;">
+                        <button onclick="rotateImage()" class="btn btn-secondary" style="flex: 1; padding: 8px; font-size: 0.75rem;">
+                            <i class="fa-solid fa-rotate-right"></i> Rotate 90°
+                        </button>
+                        <button onclick="resetEffects()" class="btn btn-secondary" style="padding: 8px 12px; font-size: 0.75rem;">
+                            Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 8px; padding-top: 12px; border-top: 1px solid #334155;">
+                <button onclick="closeEditor()" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.8rem;">Cancel</button>
+                <button onclick="saveEditedImage()" class="btn" style="padding: 8px 16px; font-size: 0.8rem;">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        let images = []; 
+        let currentEditIndex = null;
+
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const imageGrid = document.getElementById('image-grid');
+        const imageCount = document.getElementById('image-count');
+        const downloadBtn = document.getElementById('download-btn');
+        const exportFormat = document.getElementById('export-format');
+        const pdfSettingsGroup = document.getElementById('pdf-settings-group');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            handleFiles(e.dataTransfer.files);
+        });
+        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+        exportFormat.addEventListener('change', (e) => {
+            pdfSettingsGroup.style.display = e.target.value === 'pdf' ? 'flex' : 'none';
+        });
+
+        function handleFiles(files) {
+            Array.from(files).forEach(file => {
+                if (!file.type.startsWith('image/')) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    images.push({
+                        id: Math.random().toString(36).substr(2, 9),
+                        file: file,
+                        name: file.name,
+                        dataUrl: e.target.result,
+                        brightness: 100,
+                        contrast: 100,
+                        grayscale: 0,
+                        rotation: 0
+                    });
+                    renderImages();
+                };
+                reader.readAsDataURL(file);
+            });
+            fileInput.value = '';
+        }
+
+        function renderImages() {
+            imageGrid.innerHTML = '';
+            imageCount.textContent = images.length;
+            downloadBtn.disabled = images.length === 0;
+
+            images.forEach((img, index) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                
+                card.innerHTML = `
+                    <div class="card-img-box">
+                        <img src="${img.dataUrl}" style="filter: brightness(${img.brightness}%) contrast(${img.contrast}%) grayscale(${img.grayscale}%); transform: rotate(${img.rotation}deg);" />
+                        <span class="card-badge">#${index + 1}</span>
+                    </div>
+                    <div class="card-actions">
+                        <div style="display:flex; gap:4px;">
+                            <button onclick="moveImage(${index}, -1)" ${index === 0 ? 'disabled' : ''} class="icon-btn"><i class="fa-solid fa-arrow-left"></i></button>
+                            <button onclick="moveImage(${index}, 1)" ${index === images.length - 1 ? 'disabled' : ''} class="icon-btn"><i class="fa-solid fa-arrow-right"></i></button>
+                        </div>
+                        <div style="display:flex; gap:4px;">
+                            <button onclick="openEditor(${index})" class="icon-btn edit" title="Edit Effects"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+                            <button onclick="removeImage(${index})" class="icon-btn delete" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                `;
+                imageGrid.appendChild(card);
+            });
+        }
+
+        function moveImage(index, direction) {
+            const target = index + direction;
+            if (target < 0 || target >= images.length) return;
+            const temp = images[index];
+            images[index] = images[target];
+            images[target] = temp;
+            renderImages();
+        }
+
+        function removeImage(index) {
+            images.splice(index, 1);
+            renderImages();
+        }
+
+        function clearAll() {
+            images = [];
+            renderImages();
+        }
+
+        const modal = document.getElementById('editor-modal');
+        const canvas = document.getElementById('editor-canvas');
+        const ctx = canvas.getContext('2d');
+        let editImgObj = null;
+
+        function openEditor(index) {
+            currentEditIndex = index;
+            editImgObj = JSON.parse(JSON.stringify(images[index]));
+            
+            document.getElementById('range-brightness').value = editImgObj.brightness;
+            document.getElementById('range-contrast').value = editImgObj.contrast;
+            document.getElementById('range-grayscale').value = editImgObj.grayscale;
+            
+            document.getElementById('val-brightness').textContent = editImgObj.brightness;
+            document.getElementById('val-contrast').textContent = editImgObj.contrast;
+            document.getElementById('val-grayscale').textContent = editImgObj.grayscale;
+
+            modal.style.display = 'flex';
+            drawImageOnCanvas();
+        }
+
+        function closeEditor() {
+            modal.style.display = 'none';
+            currentEditIndex = null;
+            editImgObj = null;
+        }
+
+        function drawImageOnCanvas() {
+            const img = new Image();
+            img.src = images[currentEditIndex].dataUrl;
+            img.onload = () => {
+                let rot = editImgObj.rotation % 360;
+                if (rot === 90 || rot === 270) {
+                    canvas.width = img.height;
+                    canvas.height = img.width;
+                } else {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                }
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.save();
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate((rot * Math.PI) / 180);
+                ctx.filter = `brightness(${editImgObj.brightness}%) contrast(${editImgObj.contrast}%) grayscale(${editImgObj.grayscale}%)`;
+                ctx.drawImage(img, -img.width / 2, -img.height / 2);
+                ctx.restore();
+            };
+        }
+
+        function applyEffects() {
+            if (editImgObj === null) return;
+            editImgObj.brightness = document.getElementById('range-brightness').value;
+            editImgObj.contrast = document.getElementById('range-contrast').value;
+            editImgObj.grayscale = document.getElementById('range-grayscale').value;
+
+            document.getElementById('val-brightness').textContent = editImgObj.brightness;
+            document.getElementById('val-contrast').textContent = editImgObj.contrast;
+            document.getElementById('val-grayscale').textContent = editImgObj.grayscale;
+
+            drawImageOnCanvas();
+        }
+
+        function rotateImage() {
+            if (editImgObj === null) return;
+            editImgObj.rotation = (editImgObj.rotation + 90) % 360;
+            drawImageOnCanvas();
+        }
+
+        function resetEffects() {
+            if (editImgObj === null) return;
+            editImgObj.brightness = 100;
+            editImgObj.contrast = 100;
+            editImgObj.grayscale = 0;
+            editImgObj.rotation = 0;
+
+            document.getElementById('range-brightness').value = 100;
+            document.getElementById('range-contrast').value = 100;
+            document.getElementById('range-grayscale').value = 0;
+
+            document.getElementById('val-brightness').textContent = 100;
+            document.getElementById('val-contrast').textContent = 100;
+            document.getElementById('val-grayscale').textContent = 0;
+
+            drawImageOnCanvas();
+        }
+
+        function saveEditedImage() {
+            if (currentEditIndex === null) return;
+            images[currentEditIndex].brightness = editImgObj.brightness;
+            images[currentEditIndex].contrast = editImgObj.contrast;
+            images[currentEditIndex].grayscale = editImgObj.grayscale;
+            images[currentEditIndex].rotation = editImgObj.rotation;
+            images[currentEditIndex].dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+            
+            renderImages();
+            closeEditor();
+        }
+
+        async function processAndDownload() {
+            if (images.length === 0) return;
+            const format = exportFormat.value;
+            const pageSizeOption = document.getElementById('pdf-size').value;
+            const orientation = document.getElementById('pdf-orientation').value;
+
+            if (format === 'pdf') {
+                const { jsPDF } = window.jspdf;
+                let pdf;
+
+                if (pageSizeOption === 'fit-image') {
+                    await new Promise((resolve) => {
+                        const img = new Image();
+                        img.src = images[0].dataUrl;
+                        img.onload = () => {
+                            pdf = new jsPDF({
+                                orientation: img.width > img.height ? 'l' : 'p',
+                                unit: 'px',
+                                format: [img.width, img.height]
+                            });
+                            resolve();
+                        };
+                    });
+                } else {
+                    pdf = new jsPDF({
+                        orientation: orientation,
+                        unit: 'mm',
+                        format: pageSizeOption
+                    });
+                }
+
+                for (let i = 0; i < images.length; i++) {
+                    const imgData = images[i].dataUrl;
+
+                    await new Promise((resolve) => {
+                        const img = new Image();
+                        img.src = imgData;
+                        img.onload = () => {
+                            if (i > 0) {
+                                if (pageSizeOption === 'fit-image') {
+                                    pdf.addPage([img.width, img.height], img.width > img.height ? 'l' : 'p');
+                                } else {
+                                    pdf.addPage(pageSizeOption, orientation);
+                                }
+                            }
+
+                            if (pageSizeOption === 'fit-image') {
+                                pdf.addImage(imgData, 'JPEG', 0, 0, img.width, img.height);
+                            } else {
+                                const pageWidth = pdf.internal.pageSize.getWidth();
+                                const pageHeight = pdf.internal.pageSize.getHeight();
+
+                                const ratio = Math.min(pageWidth / img.width, pageHeight / img.height);
+                                const imgW = img.width * ratio;
+                                const imgH = img.height * ratio;
+                                const x = (pageWidth - imgW) / 2;
+                                const y = (pageHeight - imgH) / 2;
+
+                                pdf.addImage(imgData, 'JPEG', x, y, imgW, imgH);
+                            }
+                            resolve();
+                        };
+                    });
+                }
+                pdf.save('converted-document.pdf');
+            } else {
+                images.forEach((img, index) => {
+                    const link = document.createElement('a');
+                    link.href = img.dataUrl;
+                    link.download = `converted-${index + 1}.${format}`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                });
+            }
+        }
+    </script>
+</body>
+</html>
